@@ -5,6 +5,7 @@ This module contains the core Extractor model that accepts PreprocessedBatch
 directly for efficient GPU-only forward passes.
 """
 
+import importlib
 import os
 import tempfile
 from typing import Dict, List, Any, Optional, Tuple
@@ -23,6 +24,10 @@ from transformers import (
     AutoConfig,
     AutoTokenizer,
 )
+
+IS_FLASHDEBERTA = importlib.util.find_spec("flashdeberta") is not None
+if IS_FLASHDEBERTA:
+    from flashdeberta import FlashDebertaV2Model
 
 
 class ExtractorConfig(PretrainedConfig):
@@ -81,10 +86,7 @@ class Extractor(PreTrainedModel):
             )
 
         # Load encoder
-        if encoder_config is not None:
-            self.encoder = AutoModel.from_config(encoder_config, trust_remote_code=True)
-        else:
-            self.encoder = AutoModel.from_pretrained(config.model_name, trust_remote_code=True)
+        self.encoder = self._load_encoder(config.model_name, encoder_config)
 
         self.encoder.resize_token_embeddings(len(self.processor.tokenizer))
         self.hidden_size = self.encoder.config.hidden_size
@@ -144,6 +146,40 @@ class Extractor(PreTrainedModel):
         print(f"Counting layer     : {config.counting_layer}")
         print(f"Token pooling      : {config.token_pooling}")
         print("=" * 60)
+
+    @staticmethod
+    def _load_encoder(model_name: str, encoder_config=None) -> nn.Module:
+        """Load the transformer encoder, using optimized backends when available.
+
+        Checks for FlashDeberta support when the encoder is DebertaV2-based.
+        Activated by setting the USE_FLASHDEBERTA environment variable.
+
+        Args:
+            model_name: Name or path of the pretrained model.
+            encoder_config: Optional pre-loaded encoder config. If provided,
+                the model is initialized from config; otherwise from pretrained.
+
+        Returns:
+            The initialized encoder module.
+        """
+        use_flashdeberta = (
+            IS_FLASHDEBERTA
+            and os.environ.get("USE_FLASHDEBERTA", "")
+        )
+
+        if encoder_config is not None:
+            config_name = encoder_config.__class__.__name__
+            if config_name == "DebertaV2Config" and use_flashdeberta:
+                print("Using FlashDeberta backend.")
+                return FlashDebertaV2Model(encoder_config)
+            return AutoModel.from_config(encoder_config, trust_remote_code=True)
+
+        pretrained_config = AutoConfig.from_pretrained(model_name)
+        config_name = pretrained_config.__class__.__name__
+        if config_name == "DebertaV2Config" and use_flashdeberta:
+            print("Using FlashDeberta backend.")
+            return FlashDebertaV2Model.from_pretrained(model_name)
+        return AutoModel.from_pretrained(model_name, trust_remote_code=True)
 
     # =========================================================================
     # Main Forward Pass
