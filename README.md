@@ -35,6 +35,25 @@ print(result)
 # {'entities': {'company': ['Apple'], 'person': ['Tim Cook'], 'product': ['iPhone 15'], 'location': ['Cupertino']}}
 ```
 
+### Quantization and Compilation
+
+Enable fp16 and/or `torch.compile` for faster inference — no extra dependencies required.
+
+```python
+# fp16
+model = GLiNER2.from_pretrained("fastino/gliner2-base-v1", map_location="cuda", quantize=True)
+
+# torch.compile (fused GPU kernels, first call triggers tracing)
+model = GLiNER2.from_pretrained("fastino/gliner2-base-v1", map_location="cuda", compile=True)
+
+# Both
+model = GLiNER2.from_pretrained("fastino/gliner2-base-v1", map_location="cuda", quantize=True, compile=True)
+
+# Or after loading
+model.quantize()
+model.compile()
+```
+
 ### 🌐 API Access: GLiNER XL 1B
 
 Our biggest and most powerful model—**GLiNER XL 1B**—is available exclusively via API. No GPU required, no model downloads, just instant access to state-of-the-art extraction. Get your API key at [gliner.pioneer.ai](https://gliner.pioneer.ai).

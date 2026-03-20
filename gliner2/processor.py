@@ -61,11 +61,21 @@ class PreprocessedBatch:
     text_word_counts: List[int] = None  # actual word count per sample
     schema_special_indices: List[List[List[int]]] = None  # per-sample, per-schema positions
 
-    def to(self, device: torch.device) -> 'PreprocessedBatch':
-        """Move tensors to device."""
+    def to(self, device: torch.device, dtype: torch.dtype = None) -> 'PreprocessedBatch':
+        """Move tensors to device and optionally cast float tensors to dtype.
+
+        Integer tensors (input_ids, text_word_indices) are moved to the device
+        but keep their original dtype regardless of the *dtype* argument.
+        """
+        def _cast(t, is_int=False):
+            t = t.to(device)
+            if dtype is not None and not is_int:
+                t = t.to(dtype)
+            return t
+
         return PreprocessedBatch(
-            input_ids=self.input_ids.to(device),
-            attention_mask=self.attention_mask.to(device),
+            input_ids=_cast(self.input_ids, is_int=True),
+            attention_mask=_cast(self.attention_mask),
             mapped_indices=self.mapped_indices,
             schema_counts=self.schema_counts,
             original_lengths=self.original_lengths,
@@ -78,7 +88,7 @@ class PreprocessedBatch:
             original_texts=self.original_texts,
             original_schemas=self.original_schemas,
             text_word_indices=(
-                self.text_word_indices.to(device)
+                _cast(self.text_word_indices, is_int=True)
                 if self.text_word_indices is not None else None
             ),
             text_word_counts=self.text_word_counts,
@@ -1097,7 +1107,8 @@ class SchemaTransformer:
                 # Single gather for all text word embeddings
                 word_embs = token_embeddings[i, indices]  # (n_words, hidden)
             else:
-                word_embs = torch.empty(0, hidden, device=device)
+                word_embs = torch.empty(0, hidden, device=device,
+                                        dtype=token_embeddings.dtype)
 
             all_token_embs.append(word_embs)
 
@@ -1154,7 +1165,7 @@ class SchemaTransformer:
                 word_embs.append(self._aggregate(bucket))
 
             all_token_embs.append(
-                torch.stack(word_embs) if word_embs else torch.empty(0, embs.shape[-1], device=embs.device)
+                torch.stack(word_embs) if word_embs else torch.empty(0, embs.shape[-1], device=embs.device, dtype=embs.dtype)
             )
             all_schema_embs.append(schema_embs)
 
