@@ -6,6 +6,7 @@ directly for efficient GPU-only forward passes.
 """
 
 import importlib
+import logging
 import os
 import tempfile
 from typing import Dict, List, Any, Optional, Tuple
@@ -13,6 +14,8 @@ from typing import Dict, List, Any, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+logger = logging.getLogger(__name__)
 from gliner.modeling.span_rep import SpanRepLayer
 from gliner2.layers import CountLSTMoE, CountLSTM, create_mlp, CountLSTMv2
 from gliner2.processor import SchemaTransformer, PreprocessedBatch, SamplingConfig
@@ -209,7 +212,8 @@ class Extractor(PreTrainedModel):
             return self._empty_loss_dict()
 
         device = next(self.parameters()).device
-        batch = batch.to(device)
+        dtype = next(self.parameters()).dtype
+        batch = batch.to(device, dtype if dtype != torch.float32 else None)
 
         # Encode batch through transformer
         all_token_embs, all_schema_embs = self._encode_batch(batch)
@@ -518,10 +522,49 @@ class Extractor(PreTrainedModel):
         batch_size = len(token_embs_list)
         hidden = token_embs_list[0].shape[-1]
 
-        # Pad token embeddings -> (batch, max_text_len, hidden)
-        padded = torch.zeros(batch_size, max_text_len, hidden, device=device)
+        # Pad variable-length list into a single dense tensor (stays eager
+        # so torch.compile doesn't guard on per-element shapes).
+        padded = torch.zeros(batch_size, max_text_len, hidden,
+                             device=device, dtype=token_embs_list[0].dtype)
         for i, emb in enumerate(token_embs_list):
             padded[i, :text_lengths[i]] = emb
+
+        text_len_t = torch.tensor(text_lengths, device=device)
+
+        # Dense tensor path — safe for torch.compile
+        span_rep, safe_spans, span_mask = self._compute_span_rep_core(
+            padded, text_len_t,
+        )
+
+        # Unpack per-sample results (Python dicts, stays eager)
+        results = []
+        for i in range(batch_size):
+            tl = text_lengths[i]
+            results.append({
+                "span_rep": span_rep[i, :tl, :, :],
+                "spans_idx": safe_spans[i:i+1, :, :],
+                "span_mask": span_mask[i:i+1, :],
+            })
+        return results
+
+    def _compute_span_rep_core(
+            self,
+            padded: torch.Tensor,
+            text_len_t: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Dense-tensor span computation (compile-friendly).
+
+        Args:
+            padded: (batch, max_text_len, hidden) — padded token embeddings
+            text_len_t: (batch,) — actual text lengths per sample
+
+        Returns:
+            span_rep: (batch, max_text_len, max_width, hidden)
+            safe_spans: (batch, N, 2)
+            span_mask: (batch, N) — True for invalid
+        """
+        batch_size, max_text_len, _ = padded.shape
+        device = padded.device
 
         # Vectorized span indices for max_text_len
         starts = torch.arange(max_text_len, device=device).unsqueeze(1).expand(-1, self.max_width)
@@ -529,7 +572,6 @@ class Extractor(PreTrainedModel):
         ends = starts + offsets  # (max_text_len, max_width)
 
         # Per-sample validity: span (i, i+j) valid iff i+j < text_lengths[sample]
-        text_len_t = torch.tensor(text_lengths, device=device)
         ends_expanded = ends.unsqueeze(0).expand(batch_size, -1, -1)
         valid = ends_expanded < text_len_t.view(-1, 1, 1)
 
@@ -545,16 +587,7 @@ class Extractor(PreTrainedModel):
         # Single batched forward pass through SpanMarkerV0
         span_rep = self.span_rep(padded, safe_spans)  # (batch, max_text_len, max_width, hidden)
 
-        # Unpack per-sample results
-        results = []
-        for i in range(batch_size):
-            tl = text_lengths[i]
-            results.append({
-                "span_rep": span_rep[i, :tl, :, :],
-                "spans_idx": safe_spans[i:i+1, :, :],
-                "span_mask": span_mask[i:i+1, :],
-            })
-        return results
+        return span_rep, safe_spans, span_mask
 
     def compute_struct_loss(
             self,
@@ -634,16 +667,28 @@ class Extractor(PreTrainedModel):
     def from_pretrained(cls, repo_or_dir: str, **kwargs):
         """
         Load model from Hugging Face Hub or local directory.
-        
+
+        Args:
+            repo_or_dir: HuggingFace repo ID or local directory path.
+            quantize: If True, convert model to fp16 after loading.
+            compile: If True, torch.compile the encoder and span-rep
+                with ``dynamic=True`` for fused GPU kernels.
+            map_location: Device to load the model onto (e.g. "cpu", "cuda").
+            **kwargs: Additional keyword arguments.
+
         To use a LoRA adapter:
             1. Load the base model first
             2. Then load the adapter using model.load_adapter()
-        
+
         Example:
             model = Extractor.from_pretrained("base-model-name")
             model.load_adapter("path/to/adapter")
         """
         from huggingface_hub import hf_hub_download
+
+        quantize = kwargs.pop("quantize", False)
+        compile_model = kwargs.pop("compile", False)
+        map_location = kwargs.pop("map_location", None)
 
         def download_or_local(repo, filename):
             if os.path.isdir(repo):
@@ -681,17 +726,84 @@ class Extractor(PreTrainedModel):
             pass
 
         model.load_state_dict(state_dict)
+
+        if map_location is not None:
+            model = model.to(map_location)
+
+        if quantize:
+            model.quantize()
+
+        if compile_model:
+            model.compile()
+
         return model
+
+    # =========================================================================
+    # Quantization
+    # =========================================================================
+
+    def quantize(self) -> 'Extractor':
+        """Convert all model parameters to float16 for faster inference.
+
+        Returns:
+            self (for method chaining).
+
+        Example::
+
+            model = GLiNER2.from_pretrained("fastino/gliner2-base-v1")
+            model.quantize()
+
+            model = GLiNER2.from_pretrained("fastino/gliner2-base-v1",
+                                            map_location="cuda")
+            model.quantize()
+        """
+        self.half()
+        logger.info("Converted model to fp16")
+        return self
+
+    # =========================================================================
+    # torch.compile
+    # =========================================================================
+
+    def compile(self) -> 'Extractor':
+        """Compile the encoder and span-rep with ``torch.compile(dynamic=True)``.
+
+        Only the two heaviest tensor subgraphs are compiled:
+
+        - **encoder** (DeBERTa backbone, 584 ops, 0 graph breaks)
+        - **_compute_span_rep_core** (span index + MLP, 0 graph breaks)
+
+        The list-of-tensors padding in ``compute_span_rep_batched`` and the
+        per-sample Python decode path are left in eager mode.
+
+        The first call triggers tracing and is slow; subsequent calls
+        with similar shapes use the cached compiled graph.
+
+        Returns:
+            self (for method chaining).
+
+        Example::
+
+            model = GLiNER2.from_pretrained("fastino/gliner2-base-v1",
+                                            map_location="cuda")
+            model.compile()
+        """
+        self.encoder = torch.compile(self.encoder, dynamic=True)
+        self._compute_span_rep_core = torch.compile(
+            self._compute_span_rep_core, dynamic=True,
+        )
+        logger.info("Compiled encoder and span-rep with torch.compile(dynamic=True)")
+        return self
 
     def load_adapter(self, adapter_path: str) -> 'Extractor':
         """
         Load a LoRA adapter onto this model.
-        
+
         If an adapter is already loaded, it will be unloaded first.
-        
+
         Args:
             adapter_path: Path to adapter directory
-            
+
         Returns:
             self for method chaining
             

@@ -605,9 +605,10 @@ class GLiNER2(Extractor):
         all_results = []
         sample_idx = 0
         device = next(self.parameters()).device
+        dtype = next(self.parameters()).dtype
 
         for batch in batches:
-            batch = batch.to(device)
+            batch = batch.to(device, dtype if dtype != torch.float32 else None)
             batch_results = self._extract_from_batch(
                 batch, threshold, metadata_list[sample_idx:sample_idx + len(batch)],
                 include_confidence, include_spans

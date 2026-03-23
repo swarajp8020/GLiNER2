@@ -1,4 +1,4 @@
-# GLiNER2: Unified Schema-Based Information Extraction
+# GLiNER2: Unified Schema-Based Information Extraction and Text Classification
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -33,6 +33,25 @@ result = extractor.extract_entities(text, ["company", "person", "product", "loca
 
 print(result)
 # {'entities': {'company': ['Apple'], 'person': ['Tim Cook'], 'product': ['iPhone 15'], 'location': ['Cupertino']}}
+```
+
+### Quantization and Compilation
+
+Enable fp16 and/or `torch.compile` for faster inference — no extra dependencies required.
+
+```python
+# fp16
+model = GLiNER2.from_pretrained("fastino/gliner2-base-v1", map_location="cuda", quantize=True)
+
+# torch.compile (fused GPU kernels, first call triggers tracing)
+model = GLiNER2.from_pretrained("fastino/gliner2-base-v1", map_location="cuda", compile=True)
+
+# Both
+model = GLiNER2.from_pretrained("fastino/gliner2-base-v1", map_location="cuda", quantize=True, compile=True)
+
+# Or after loading
+model.quantize()
+model.compile()
 ```
 
 ### 🌐 API Access: GLiNER XL 1B
