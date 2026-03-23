@@ -769,6 +769,41 @@ results = extractor.extract(text, schema)
 # Output: {'user': [{'username': 'john_doe'}]}  # Only valid usernames
 ```
 
+## FlashDeberta (Optional GPU Acceleration)
+
+For DebertaV2-based models, you can use [FlashDeberta](https://github.com/fastino-ai/flashdeberta) to accelerate inference on GPU via flash attention kernels.
+
+**Install:**
+
+```bash
+pip install flashdeberta
+```
+
+**Use:**
+
+```python
+import os
+os.environ["USE_FLASHDEBERTA"] = "1"  # set before importing gliner2
+
+from gliner2 import GLiNER2
+
+extractor = GLiNER2.from_pretrained("fastino/gliner2-base-v1")
+# Prints: "Using FlashDeberta backend."
+
+result = extractor.extract_entities(
+    "Apple CEO Tim Cook announced iPhone 15 in Cupertino.",
+    ["company", "person", "product", "location"]
+)
+```
+
+The flag is only effective when the model uses a DebertaV2 encoder and the `flashdeberta` package is installed. Otherwise standard HuggingFace `AutoModel` is used automatically.
+
+A benchmark script is included to compare the two backends:
+
+```bash
+python benchmarks/benchmark_flashdeberta.py
+```
+
 ## 📦 Batch Processing
 
 Process multiple texts efficiently in a single call:
