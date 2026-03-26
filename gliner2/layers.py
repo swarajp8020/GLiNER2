@@ -36,8 +36,12 @@ class CompileSafeGRU(nn.Module):
         Returns:
             (seq_len, batch, hidden_size) — hidden state at each step.
         """
+        seq_len = x.shape[0]
+        if seq_len == 0:
+            return x.new_empty(0, h.shape[0], self.hidden_size)
+
         outputs = []
-        for t in range(x.shape[0]):
+        for t in range(seq_len):
             gi = F.linear(x[t], self.weight_ih_l0, self.bias_ih_l0)
             gh = F.linear(h, self.weight_hh_l0, self.bias_hh_l0)
 
