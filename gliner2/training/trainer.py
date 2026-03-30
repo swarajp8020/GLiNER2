@@ -934,6 +934,7 @@ class GLiNER2Trainer:
 
         self.progress_bar = tqdm(total=max_steps, desc="Training", disable=not self.is_main_process)
 
+        should_stop = False
         for epoch in range(num_epochs):
             self.epoch = epoch
 
@@ -1019,9 +1020,14 @@ class GLiNER2Trainer:
 
                     if self.config.eval_strategy == "steps" and self.global_step % self.config.eval_steps == 0:
                         if eval_dataset:
-                            self._evaluate(eval_dataset)
+                            prev_best = self.best_metric
+                            eval_metrics = self._evaluate(eval_dataset)
                             self.model.train()
                             self.processor.change_mode(is_training=True)
+                            if self.config.early_stopping and self._check_early_stopping(eval_metrics, prev_best):
+                                logger.info(f"Early stopping triggered at step {self.global_step}")
+                                should_stop = True
+                                break
                         self._save_checkpoint(f"checkpoint-{self.global_step}")
 
                     self.progress_bar.update(1)
@@ -1029,6 +1035,9 @@ class GLiNER2Trainer:
                     if self.global_step >= max_steps:
                         break
             
+            if should_stop:
+                break
+
             # Fix Bug #6: Flush incomplete gradient accumulation at end of epoch
             if epoch_steps % self.config.gradient_accumulation_steps != 0:
                 grad_norm = self._flush_gradients()
