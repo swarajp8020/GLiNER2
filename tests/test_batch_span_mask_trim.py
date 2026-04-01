@@ -10,10 +10,16 @@ text lengths.
 Run with: pytest tests/test_batch_span_mask_trim.py -v
 """
 
+import io
+import sys
+import tempfile
+
 import pytest
 import torch
 
 from gliner2 import GLiNER2
+from gliner2.training.data import InputExample
+from gliner2.training.trainer import TrainingConfig, GLiNER2Trainer
 
 
 @pytest.fixture(scope="module")
@@ -23,6 +29,10 @@ def model():
     m.eval()
     return m
 
+
+# ---------------------------------------------------------------------------
+# Unit tests: span_rep shape correctness
+# ---------------------------------------------------------------------------
 
 class TestSpanMaskTrim:
     """Verify span_mask and spans_idx are trimmed to match span_rep per sample."""
@@ -108,3 +118,215 @@ class TestSpanMaskTrim:
             expected_spans = length * max_width
             assert result["span_mask"].shape[1] == expected_spans
             assert result["spans_idx"].shape[1] == expected_spans
+
+
+# ---------------------------------------------------------------------------
+# Training integration tests
+# ---------------------------------------------------------------------------
+
+# Samples with deliberately varying text lengths and 9+ entity labels
+TRAIN_EXAMPLES = [
+    InputExample(
+        text="John works at Google in NYC.",
+        entities={"person": ["John"], "company": ["Google"], "city": ["NYC"]},
+    ),
+    InputExample(
+        text="A very long address like 123 Main Street, Apartment 5B, Springfield, Illinois, 62704, United States of America is hard to parse correctly.",
+        entities={
+            "street": ["Main Street"],
+            "postal code": ["62704"],
+            "state": ["Illinois"],
+            "country": ["United States of America"],
+        },
+    ),
+    InputExample(
+        text="Dr. Jane Smith published a paper on quantum computing at MIT in September 2024.",
+        entities={
+            "person": ["Dr. Jane Smith"],
+            "field": ["quantum computing"],
+            "organization": ["MIT"],
+            "date": ["September 2024"],
+        },
+    ),
+    InputExample(
+        text="OK.",
+        entities={"person": []},
+    ),
+    InputExample(
+        text="The price of Bitcoin hit $97,000 on the Nasdaq exchange during the morning session in Tokyo, Japan.",
+        entities={
+            "currency": ["Bitcoin"],
+            "price": ["$97,000"],
+            "exchange": ["Nasdaq"],
+            "city": ["Tokyo"],
+            "country": ["Japan"],
+        },
+    ),
+    InputExample(
+        text="CEO Satya Nadella announced Microsoft Azure's new GPU cluster in Redmond.",
+        entities={
+            "person": ["Satya Nadella"],
+            "company": ["Microsoft"],
+            "product": ["Azure"],
+            "location": ["Redmond"],
+        },
+    ),
+    InputExample(
+        text="Hi.",
+        entities={"greeting": ["Hi"]},
+    ),
+    InputExample(
+        text="The European Central Bank raised interest rates by 25 basis points to combat inflation across the Eurozone, effective January 15, 2025.",
+        entities={
+            "organization": ["European Central Bank"],
+            "metric": ["25 basis points"],
+            "region": ["Eurozone"],
+            "date": ["January 15, 2025"],
+        },
+    ),
+]
+
+
+class TestTrainingBatchCollation:
+    """Integration tests: training with batch_size > 1 and varying text lengths."""
+
+    def test_train_batch4_no_sample_errors(self, model):
+        """Train with batch_size=4, 9+ entity labels, varying lengths.
+
+        Verifies no 'Error processing sample' messages appear in stdout,
+        which would indicate the tensor mismatch bug.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = TrainingConfig(
+                output_dir=tmp_dir,
+                batch_size=4,
+                num_epochs=1,
+                eval_strategy="no",
+                logging_steps=9999,  # suppress normal logging
+                fp16=False,
+            )
+
+            trainer = GLiNER2Trainer(model, config)
+
+            # Capture stdout to check for error messages
+            captured = io.StringIO()
+            old_stdout = sys.stdout
+            sys.stdout = captured
+            try:
+                trainer.train(train_data=TRAIN_EXAMPLES)
+            finally:
+                sys.stdout = old_stdout
+
+            output = captured.getvalue()
+            assert "Error processing sample" not in output, (
+                f"Training produced sample errors:\n{output}"
+            )
+
+    def test_all_samples_contribute_to_loss(self, model):
+        """Verify valid_samples == batch_size for every batch (no silent drops).
+
+        Uses return_individual_losses to inspect per-sample loss output and
+        confirm every sample in the batch was processed without error.
+        """
+        from gliner2.training.trainer import ExtractorCollator, ExtractorDataset
+
+        dataset = ExtractorDataset(TRAIN_EXAMPLES, validate=False)
+        collator = ExtractorCollator(
+            model.processor, is_training=True, max_len=model.config.max_len
+        )
+        loader = torch.utils.data.DataLoader(
+            dataset, batch_size=4, collate_fn=collator, shuffle=False
+        )
+
+        device = next(model.parameters()).device
+        model.train()
+
+        for batch_idx, batch in enumerate(loader):
+            batch = batch.to(device)
+            outputs = model(batch, return_individual_losses=True)
+
+            batch_size_actual = len(batch.task_types)
+            valid_samples = outputs["batch_size"]
+            assert valid_samples == batch_size_actual, (
+                f"Batch {batch_idx}: only {valid_samples}/{batch_size_actual} "
+                f"samples were valid"
+            )
+
+            # No individual sample should have an error key
+            for i, ind in enumerate(outputs["individual_losses"]):
+                assert "error" not in ind, (
+                    f"Batch {batch_idx}, sample {i} errored: {ind['error']}"
+                )
+
+        model.eval()
+
+    def test_batch1_vs_batch4_loss_similarity(self, model):
+        """Training loss with batch_size=1 and batch_size=4 should be comparable.
+
+        Both should produce non-zero, finite losses. With the bug, batch_size=4
+        would silently skip most samples yielding near-zero loss.
+        """
+        losses = {}
+
+        for bs in [1, 4]:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                config = TrainingConfig(
+                    output_dir=tmp_dir,
+                    batch_size=bs,
+                    num_epochs=1,
+                    eval_strategy="no",
+                    logging_steps=9999,
+                    fp16=False,
+                )
+
+                trainer = GLiNER2Trainer(model, config)
+                result = trainer.train(train_data=TRAIN_EXAMPLES)
+
+                # Collect final epoch loss from metrics history
+                history = result.get("train_metrics_history", [])
+                if history:
+                    losses[bs] = history[-1].loss
+                else:
+                    # Fall back: run a manual forward pass to get the loss
+                    from gliner2.training.trainer import (
+                        ExtractorCollator,
+                        ExtractorDataset,
+                    )
+                    dataset = ExtractorDataset(TRAIN_EXAMPLES, validate=False)
+                    collator = ExtractorCollator(
+                        model.processor,
+                        is_training=True,
+                        max_len=model.config.max_len,
+                    )
+                    loader = torch.utils.data.DataLoader(
+                        dataset, batch_size=bs, collate_fn=collator
+                    )
+                    device = next(model.parameters()).device
+                    model.train()
+                    total_loss = 0.0
+                    n_batches = 0
+                    for batch in loader:
+                        batch = batch.to(device)
+                        outputs = model(batch)
+                        total_loss += outputs["total_loss"].item()
+                        n_batches += 1
+                    losses[bs] = total_loss / max(n_batches, 1)
+                    model.eval()
+
+        loss_bs1 = losses[1]
+        loss_bs4 = losses[4]
+
+        # Both losses must be positive and finite
+        assert loss_bs1 > 0, f"batch_size=1 loss is {loss_bs1}, expected > 0"
+        assert loss_bs4 > 0, f"batch_size=4 loss is {loss_bs4}, expected > 0"
+        assert torch.isfinite(torch.tensor(loss_bs1)), "batch_size=1 loss is not finite"
+        assert torch.isfinite(torch.tensor(loss_bs4)), "batch_size=4 loss is not finite"
+
+        # Losses should be in the same ballpark (within 10x).
+        # With the bug, batch_size=4 loss would be near zero because most
+        # samples are skipped and contribute zero loss.
+        ratio = max(loss_bs1, loss_bs4) / min(loss_bs1, loss_bs4)
+        assert ratio < 10, (
+            f"Loss ratio too large: bs1={loss_bs1:.4f}, bs4={loss_bs4:.4f}, "
+            f"ratio={ratio:.1f}x — suggests samples are being silently dropped"
+        )
