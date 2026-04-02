@@ -542,10 +542,11 @@ class Extractor(PreTrainedModel):
         results = []
         for i in range(batch_size):
             tl = text_lengths[i]
+            n_spans = tl * self.max_width  # actual number of spans for this sample
             results.append({
                 "span_rep": span_rep[i, :tl, :, :],
-                "spans_idx": safe_spans[i:i+1, :, :],
-                "span_mask": span_mask[i:i+1, :],
+                "spans_idx": safe_spans[i:i+1, :n_spans, :],
+                "span_mask": span_mask[i:i+1, :n_spans],
             })
         return results
 
