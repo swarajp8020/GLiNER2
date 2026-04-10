@@ -57,3 +57,57 @@ Loan EMI debit,AUTO_DEBIT,Debit,expense,loan
 Home loan EMI,AUTO_DEBIT,Debit,expense,loan
 Personal loan payment,AUTO_DEBIT,Debit,expense,loan
 Car loan EMI,AUTO_DEBIT,Debit,expense,loan
+FD interest credited,NEFT,Credit,investment,fd_interest
+FD INT CR,NEFT,Credit,investment,fd_interest
+Fixed deposit interest,NEFT,Credit,investment,fd_interest
+FD interest payout,NEFT,Credit,investment,fd_interest
+Interest on FD,NEFT,Credit,investment,fd_interest
+FD interest received,NEFT,Credit,investment,fd_interest
+FD maturity interest,NEFT,Credit,investment,fd_interest
+Bank FD interest,NEFT,Credit,investment,fd_interest
+
+FD booking,NETBANKING,Debit,investment,fd_booking
+Open FD online,NETBANKING,Debit,investment,fd_booking
+FD created via netbanking,NETBANKING,Debit,investment,fd_booking
+New FD booking,NETBANKING,Debit,investment,fd_booking
+FD account opened,NETBANKING,Debit,investment,fd_booking
+
+SIP debit,AUTO_DEBIT,Debit,investment,mutual_fund
+MF SIP installment,AUTO_DEBIT,Debit,investment,mutual_fund
+SIP payment,AUTO_DEBIT,Debit,investment,mutual_fund
+Mutual fund SIP debit,AUTO_DEBIT,Debit,investment,mutual_fund
+Monthly SIP deduction,AUTO_DEBIT,Debit,investment,mutual_fund
+
+Swiggy payment,UPI,Debit,expense,food
+Zomato order,UPI,Debit,expense,food
+Restaurant payment,UPI,Debit,expense,food
+Cafe payment,UPI,Debit,expense,food
+Food delivery payment,UPI,Debit,expense,food
+Dinner payment,UPI,Debit,expense,food
+Lunch order,UPI,Debit,expense,food
+
+Amazon purchase,UPI,Debit,expense,shopping
+Flipkart order,UPI,Debit,expense,shopping
+Online shopping,UPI,Debit,expense,shopping
+Ecommerce purchase,UPI,Debit,expense,shopping
+Retail shopping,UPI,Debit,expense,shopping
+Clothing purchase,UPI,Debit,expense,shopping
+
+Salary credited,NEFT,Credit,income,salary
+Monthly salary,NEFT,Credit,income,salary
+Payroll credit,NEFT,Credit,income,salary
+Salary from company,NEFT,Credit,income,salary
+Salary NEFT,NEFT,Credit,income,salary
+Company salary credit,NEFT,Credit,income,salary
+Employee salary,NEFT,Credit,income,salary
+
+Bonus credited,NEFT,Credit,income,bonus
+Performance bonus,NEFT,Credit,income,bonus
+Yearly bonus,NEFT,Credit,income,bonus
+
+Electricity bill payment,UPI,Debit,expense,bills
+Mobile recharge,UPI,Debit,expense,bills
+Internet bill,UPI,Debit,expense,bills
+Utility payment,UPI,Debit,expense,bills
+Water bill payment,UPI,Debit,expense,bills
+
