@@ -1,0 +1,175 @@
+narration,mode,type,category,subcategory
+FD interest credited,NEFT,Credit,investment,fd_interest
+FD INT CR,NEFT,Credit,investment,fd_interest
+Fixed deposit interest payout,NEFT,Credit,investment,fd_interest
+Interest on FD,NEFT,Credit,investment,fd_interest
+FD ROI credited,NEFT,Credit,investment,fd_interest
+FD booking via netbanking,NETBANKING,Debit,investment,fd_booking
+Open FD online,NETBANKING,Debit,investment,fd_booking
+FD created,NETBANKING,Debit,investment,fd_booking
+New fixed deposit booking,NETBANKING,Debit,investment,fd_booking
+SIP debit, AUTO_DEBIT,Debit,investment,mutual_fund
+MF SIP installment, AUTO_DEBIT,Debit,investment,mutual_fund
+Mutual fund SIP debit, AUTO_DEBIT,Debit,investment,mutual_fund
+Investment SIP payment, AUTO_DEBIT,Debit,investment,mutual_fund
+Swiggy payment,UPI,Debit,expense,food
+Zomato order,UPI,Debit,expense,food
+Food order online,UPI,Debit,expense,food
+Restaurant payment,UPI,Debit,expense,food
+Dinner bill paid,UPI,Debit,expense,food
+Amazon purchase,UPI,Debit,expense,shopping
+Flipkart order,UPI,Debit,expense,shopping
+Online shopping payment,UPI,Debit,expense,shopping
+Ecommerce purchase,UPI,Debit,expense,shopping
+Clothing purchase,UPI,Debit,expense,shopping
+Salary credited,NEFT,Credit,income,salary
+Monthly salary,NEFT,Credit,income,salary
+Salary deposit,NEFT,Credit,income,salary
+Company payroll credit,NEFT,Credit,income,salary
+Salary from employer,NEFT,Credit,income,salary
+Uber ride payment,UPI,Debit,expense,transport
+Ola cab charge,UPI,Debit,expense,transport
+Taxi fare,UPI,Debit,expense,transport
+Metro recharge,UPI,Debit,expense,transport
+Electricity bill payment,UPI,Debit,expense,bills
+Mobile recharge,UPI,Debit,expense,bills
+Internet bill paid,UPI,Debit,expense,bills
+Water bill payment,UPI,Debit,expense,bills
+Credit card bill,NETBANKING,Debit,expense,bills
+Gym membership fee,UPI,Debit,expense,health
+Doctor consultation fee,UPI,Debit,expense,health
+Medicine purchase,UPI,Debit,expense,health
+Pharmacy bill,UPI,Debit,expense,health
+Insurance premium paid,AUTO_DEBIT,Debit,expense,insurance
+Life insurance payment,AUTO_DEBIT,Debit,expense,insurance
+Health insurance premium,AUTO_DEBIT,Debit,expense,insurance
+Dividend credited,NEFT,Credit,investment,stocks
+Stock profit credited,NEFT,Credit,investment,stocks
+Equity dividend payout,NEFT,Credit,investment,stocks
+Bonus from company,NEFT,Credit,income,bonus
+Incentive credited,NEFT,Credit,income,bonus
+Cashback received,UPI,Credit,income,cashback
+Reward points credit,UPI,Credit,income,cashback
+Refund from Amazon,UPI,Credit,income,refund
+Refund from Flipkart,UPI,Credit,income,refund
+Returned item refund,UPI,Credit,income,refund
+Loan EMI debit,AUTO_DEBIT,Debit,expense,loan
+Home loan EMI,AUTO_DEBIT,Debit,expense,loan
+Personal loan payment,AUTO_DEBIT,Debit,expense,loan
+Car loan EMI,AUTO_DEBIT,Debit,expense,loan
+FD interest credited,NEFT,Credit,investment,fd_interest
+FD INT CR,NEFT,Credit,investment,fd_interest
+Fixed deposit interest,NEFT,Credit,investment,fd_interest
+FD interest payout,NEFT,Credit,investment,fd_interest
+Interest on FD,NEFT,Credit,investment,fd_interest
+FD interest received,NEFT,Credit,investment,fd_interest
+FD maturity interest,NEFT,Credit,investment,fd_interest
+Bank FD interest,NEFT,Credit,investment,fd_interest
+
+FD booking,NETBANKING,Debit,investment,fd_booking
+Open FD online,NETBANKING,Debit,investment,fd_booking
+FD created via netbanking,NETBANKING,Debit,investment,fd_booking
+New FD booking,NETBANKING,Debit,investment,fd_booking
+FD account opened,NETBANKING,Debit,investment,fd_booking
+
+SIP debit,AUTO_DEBIT,Debit,investment,mutual_fund
+MF SIP installment,AUTO_DEBIT,Debit,investment,mutual_fund
+SIP payment,AUTO_DEBIT,Debit,investment,mutual_fund
+Mutual fund SIP debit,AUTO_DEBIT,Debit,investment,mutual_fund
+Monthly SIP deduction,AUTO_DEBIT,Debit,investment,mutual_fund
+
+Swiggy payment,UPI,Debit,expense,food
+Zomato order,UPI,Debit,expense,food
+Restaurant payment,UPI,Debit,expense,food
+Cafe payment,UPI,Debit,expense,food
+Food delivery payment,UPI,Debit,expense,food
+Dinner payment,UPI,Debit,expense,food
+Lunch order,UPI,Debit,expense,food
+
+Amazon purchase,UPI,Debit,expense,shopping
+Flipkart order,UPI,Debit,expense,shopping
+Online shopping,UPI,Debit,expense,shopping
+Ecommerce purchase,UPI,Debit,expense,shopping
+Retail shopping,UPI,Debit,expense,shopping
+Clothing purchase,UPI,Debit,expense,shopping
+
+Salary credited,NEFT,Credit,income,salary
+Monthly salary,NEFT,Credit,income,salary
+Payroll credit,NEFT,Credit,income,salary
+Salary from company,NEFT,Credit,income,salary
+Salary NEFT,NEFT,Credit,income,salary
+Company salary credit,NEFT,Credit,income,salary
+Employee salary,NEFT,Credit,income,salary
+
+Bonus credited,NEFT,Credit,income,bonus
+Performance bonus,NEFT,Credit,income,bonus
+Yearly bonus,NEFT,Credit,income,bonus
+
+Electricity bill payment,UPI,Debit,expense,bills
+Mobile recharge,UPI,Debit,expense,bills
+Internet bill,UPI,Debit,expense,bills
+Utility payment,UPI,Debit,expense,bills
+Water bill payment,UPI,Debit,expense,bills
+
+Uber ride,UPI,Debit,expense,transport
+Ola trip payment,UPI,Debit,expense,transport
+Cab booking fare,UPI,Debit,expense,transport
+Auto rickshaw payment,UPI,Debit,expense,transport
+Train ticket booking,UPI,Debit,expense,transport
+Bus ticket purchase,UPI,Debit,expense,transport
+Fuel payment petrol pump,UPI,Debit,expense,transport
+Diesel refill,UPI,Debit,expense,transport
+Parking charges,UPI,Debit,expense,transport
+Fastag recharge,UPI,Debit,expense,transport
+Metro card recharge,UPI,Debit,expense,transport
+Ride fare payment,UPI,Debit,expense,transport
+
+Hospital bill payment,UPI,Debit,expense,health
+Doctor consultation,UPI,Debit,expense,health
+Medical store purchase,UPI,Debit,expense,health
+Pharmacy medicine bill,UPI,Debit,expense,health
+Health checkup payment,UPI,Debit,expense,health
+Lab test charges,UPI,Debit,expense,health
+Clinic fee payment,UPI,Debit,expense,health
+Surgery payment,UPI,Debit,expense,health
+Dental treatment fee,UPI,Debit,expense,health
+Eye checkup payment,UPI,Debit,expense,health
+Medical insurance consultation,UPI,Debit,expense,health
+Prescription medicine purchase,UPI,Debit,expense,health
+
+Insurance premium auto debit,AUTO_DEBIT,Debit,expense,insurance
+Life insurance EMI,AUTO_DEBIT,Debit,expense,insurance
+Health insurance payment,AUTO_DEBIT,Debit,expense,insurance
+Policy premium debit,AUTO_DEBIT,Debit,expense,insurance
+Insurance renewal payment,AUTO_DEBIT,Debit,expense,insurance
+Vehicle insurance payment,AUTO_DEBIT,Debit,expense,insurance
+Term insurance premium,AUTO_DEBIT,Debit,expense,insurance
+Insurance policy charge,AUTO_DEBIT,Debit,expense,insurance
+Insurance deduction,AUTO_DEBIT,Debit,expense,insurance
+Premium auto debit,AUTO_DEBIT,Debit,expense,insurance
+Insurance policy renewal,AUTO_DEBIT,Debit,expense,insurance
+Monthly insurance premium,AUTO_DEBIT,Debit,expense,insurance
+
+Loan EMI payment,AUTO_DEBIT,Debit,expense,loan
+Home loan EMI debit,AUTO_DEBIT,Debit,expense,loan
+Car loan payment,AUTO_DEBIT,Debit,expense,loan
+Personal loan EMI,AUTO_DEBIT,Debit,expense,loan
+Loan installment debit,AUTO_DEBIT,Debit,expense,loan
+EMI deduction,AUTO_DEBIT,Debit,expense,loan
+Loan repayment,AUTO_DEBIT,Debit,expense,loan
+Housing loan debit,AUTO_DEBIT,Debit,expense,loan
+Vehicle loan EMI,AUTO_DEBIT,Debit,expense,loan
+Bank loan EMI,AUTO_DEBIT,Debit,expense,loan
+Loan auto debit,AUTO_DEBIT,Debit,expense,loan
+Monthly EMI payment,AUTO_DEBIT,Debit,expense,loan
+
+Stock dividend credit,NEFT,Credit,investment,stocks
+Equity dividend,NEFT,Credit,investment,stocks
+Stock profit payout,NEFT,Credit,investment,stocks
+Share market profit,NEFT,Credit,investment,stocks
+Dividend from shares,NEFT,Credit,investment,stocks
+Equity return credit,NEFT,Credit,investment,stocks
+Stock gain credited,NEFT,Credit,investment,stocks
+Trading profit credit,NEFT,Credit,investment,stocks
+Share dividend payout,NEFT,Credit,investment,stocks
+Market profit credit,NEFT,Credit,investment,stocks
