@@ -10,6 +10,14 @@ FD interest received,NEFT,Credit,investment,fd_interest
 roi amount credited,NEFT,Credit,investment,fd_interest
 Term deposit interest,NEFT,Credit,investment,fd_interest
 FD interest deposit,NEFT,Credit,investment,fd_interest
+emi,AUTO_DEBIT,Debit,expense,loan
+emi paid,AUTO_DEBIT,Debit,expense,loan
+loan,AUTO_DEBIT,Debit,expense,loan
+debit emi,AUTO_DEBIT,Debit,expense,loan
+upi payment,UPI,Debit,expense,shopping
+upi txn,UPI,Debit,expense,shopping
+payment done,UPI,Debit,expense,shopping
+online payment,UPI,Debit,expense,shopping
 
 FD booking via netbanking,NETBANKING,Debit,investment,fd_booking
 Open FD online,NETBANKING,Debit,investment,fd_booking
